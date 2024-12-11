@@ -33,6 +33,7 @@ public class AgentRobot extends Agent {
 
     // Tasks
     Point2D[] charging_points = new Point2D[2];
+    Point2D targetPoint;
     List<Task> tasks = new ArrayList<>();
     Task currentTask;
     long tasksTime;
@@ -54,7 +55,7 @@ public class AgentRobot extends Agent {
 
 
     //Triaging level constants
-    private int ETHYLENE_THRESHOLD = 90;               // Threshold in ppm
+    private int ETHYLENE_THRESHOLD = 0;                        // Threshold in ppm
 
 
     @Override
@@ -132,6 +133,7 @@ public class AgentRobot extends Agent {
                 }
                 if (!tasks.isEmpty() && currentTask == null) {
                     currentTask = tasks.remove(0);
+                    targetPoint = currentTask.getPickupPoint();
                     isPickup = true;
                 }
             } else {
@@ -198,10 +200,11 @@ public class AgentRobot extends Agent {
         int oldFrontDistance = frontSafeDistance + 20;
         double distanceToTarget = 0;
         boolean turnLeftNext = true;
-        int sideSafeDistance = 5;
+        boolean obstacleLeft = true;
+        int sideSafeDistance = 10;
         boolean charging = false;
         boolean needsCharging = false;
-        Point2D targetPoint;
+        boolean avoidingObstacle = false;
 
         @Override
         protected void onTick() {
@@ -276,8 +279,9 @@ public class AgentRobot extends Agent {
                                 isPickup = true;
                             }else{  //it's time to update the task list
                                 isPickup = true;
+                                notifyCentralMonitor(tasks.toString() + "not completed.");
                                 addBehaviour(ReceiveTasksBehaviour);
-                                return;
+                                //return;
                             }
                             notifyCentralMonitor("Current task:" + currentTask.toString());
                         } else {
@@ -324,8 +328,18 @@ public class AgentRobot extends Agent {
             int rightDistance = (int) getUltrasonicDistance(rightSensor);
             if (frontDistance <= frontSafeDistance + 5 && frontDistance >= frontSafeDistance - 5) {
                 handleObstacles(leftDistance, rightDistance);
+                avoidingObstacle = true;
             } else {
-                alignToTarget(targetPoint);
+                if(!avoidingObstacle)
+                    alignToTarget(targetPoint);
+                else{
+                    System.out.println("Avoiding obstacle");
+                    if((leftDistance>=sideSafeDistance*3&&obstacleLeft) || (rightDistance>=sideSafeDistance*3&&!obstacleLeft)){
+                        moveForward(speed);
+                        Delay.msDelay(2000);
+                        avoidingObstacle = false;
+                    }
+                }
                 moveForward(speed);
             }
             leftDistance = (int) getUltrasonicDistance(leftSensor);
@@ -410,6 +424,7 @@ public class AgentRobot extends Agent {
         // USE CASE: TRIAGING ROTTING CRATES
         public void checkRottingCrate() {                               // Check gas level and handle triaging
             double ethyleneLevel = simulateEthyleneLevel();
+            notifyCentralMonitor("Ethylene level of the crate: " + ethyleneLevel);
             if (ethyleneLevel > ETHYLENE_THRESHOLD) {
                 System.out.println("Crate marked as potentially rotting: Ethylene level = " + ethyleneLevel);
 
@@ -437,12 +452,14 @@ public class AgentRobot extends Agent {
         private void handleObstacles(int leftDistance, int rightDistance) {
             int frontDistance = (int) getUltrasonicDistance(frontSensor);
 
-            while (frontDistance < frontSafeDistance + 20) {
+            while (frontDistance < frontSafeDistance + 40) {
                 if (turnLeftNext && leftDistance > sideSafeDistance) {
                     rotateLeft();
+                    obstacleLeft = false;
                     Delay.msDelay(100);
                 } else if (!turnLeftNext && rightDistance > sideSafeDistance) {
                     rotateRight();
+                    obstacleLeft = true;
                     Delay.msDelay(100);
                 } else {
                     // If neither side is clear, stop and wait briefly before rechecking
@@ -456,19 +473,22 @@ public class AgentRobot extends Agent {
                 leftDistance = (int) getUltrasonicDistance(leftSensor);
                 rightDistance = (int) getUltrasonicDistance(rightSensor);
             }
+            turnLeftNext = !turnLeftNext;
             Delay.msDelay(50);
             moveForward(200);
-            Delay.msDelay(3000);
-            stopMotors();
         }
 
         private void maintainSideSafetyDistance(int leftDistance, int rightDistance) {
             if (leftDistance <= sideSafeDistance) {
                 rotateRight();
                 Delay.msDelay(200);
+                obstacleLeft = true;
+                avoidingObstacle = true;
             } else if (rightDistance <= sideSafeDistance) {
                 rotateLeft();
                 Delay.msDelay(200);
+                obstacleLeft = false;
+                avoidingObstacle = true;
             }
         }
 

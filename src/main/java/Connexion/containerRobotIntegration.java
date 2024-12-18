@@ -21,7 +21,7 @@ public class containerRobotIntegration {
             AgentContainer agentContainer=runtime.createAgentContainer(p);
             containerRobotIntegration.start();
 
-            AgentController agentRobot=agentContainer.createNewAgent("AgentRobot", "Connexion.AgentRobot",new Object[]{});
+            AgentController agentRobot=agentContainer.createNewAgent("AgentRobotIntegration", "Connexion.AgentRobotIntegration",new Object[]{});
             agentRobot.start();
 
         } catch (Exception e) {

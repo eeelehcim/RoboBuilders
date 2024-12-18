@@ -10,12 +10,16 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+//import jade.lang.acl.ParseException;
 import lejos.hardware.port.MotorPort;
 import lejos.hardware.port.SensorPort;
 import lejos.robotics.SampleProvider;
 import lejos.utility.Delay;
 import org.eclipse.paho.client.mqttv3.MqttException;
-
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.ParseException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +34,7 @@ public class AgentRobotIntegration extends Agent {
     static EV3UltrasonicSensor rightSensor = new EV3UltrasonicSensor(SensorPort.S3);
     static EV3UltrasonicSensor leftSensor = new EV3UltrasonicSensor(SensorPort.S4);
     static TagIdMqtt tag;
-
+    private Point2D targetPoint;
 
     @Override
     protected void setup() {
@@ -43,20 +47,8 @@ public class AgentRobotIntegration extends Agent {
         } catch (MqttException e) {
             throw new RuntimeException(e);
         }
-
-        addBehaviour(new CyclicBehaviour() {
-            @Override
-            public void action() {
-                ACLMessage message = receive();
-                if (message != null) {
-                    System.out.println("Agent Robot Received: " + message.getContent());
-                }
-            }
-        });
-
-        addBehaviour(updateLocation);
         addBehaviour(initMessage);
-        addBehaviour(robotControlBehaviour);
+        addBehaviour(MessageReceiverBehaviour);
     }
 
     @Override
@@ -82,98 +74,46 @@ public class AgentRobotIntegration extends Agent {
         }
     };
 
-    TickerBehaviour updateLocation = new TickerBehaviour(this, 1000) {
-        @Override
-        public void onTick() {
-            try {
-                Point2D loc = tag.getLocation();
-                notifyCentralMonitor("location " + loc.x + " " + loc.y + " " + tag.getAngle());
 
+    CyclicBehaviour NavigateToTarget = new CyclicBehaviour() {
 
-            } catch (Exception e) {
-                System.out.println(e);
-            }
-        }
-    };
-
-
-    CyclicBehaviour robotControlBehaviour = new CyclicBehaviour() {
         int frontDistance = (int) getUltrasonicDistance(frontSensor);
         int frontSafeDistance = 20;
         int oldFrontDistance = frontSafeDistance + 20;
-        double distanceToTarget = 0;
         boolean turnLeftNext = true;
         int sideSafeDistance = 5;
-        Point2D targetPoint;
 
-        @Override
-        public void action() {
-            ACLMessage message = receive();
-            if (message != null) {
-                System.out.println("action: " + message);
-                String actionMessage = message.getContent();
-
-                if (!actionMessage.equals("stop")) {
-                    stopMotors();
-                } else {
-                    targetPoint = parsePoint(actionMessage);
-                    distanceToTarget = targetPoint.dist(getRobotLocation());
-                    System.out.println("target: " + targetPoint + " distance: " + distanceToTarget);
-                    navigateToTarget();
-                }
-
-                if (distanceToTarget <= 250) { // 250 corresponds to the noise of UWB
-                    stopMotors();
-                    notifyCentralMonitor("Robot reached the target point");
-                    Delay.msDelay(3000); // Pause before resuming
-                }
-                block(100); // Add delay to simulate periodic execution, similar to TickerBehaviour
-            }
+        private void stopMotors() {
+            leftMotor.stop(true);
+            rightMotor.stop(true);
         }
 
-        public Point2D parsePoint(String pointString) {
-            pointString = pointString.replace("{x:", "").replace("}", "").replace("y:", "").trim();
-            String[] coordinates = pointString.split(";");
-
-            if (coordinates.length != 2) {
-                throw new IllegalArgumentException("Invalid point format: " + pointString);
-            }
-
-            int x = Integer.parseInt(coordinates[0].trim());
-            int y = Integer.parseInt(coordinates[1].trim());
-            return new Point2D(x, y);
+        private void rotateLeft() {
+            leftMotor.setSpeed(100);
+            rightMotor.setSpeed(100);
+            leftMotor.backward();
+            rightMotor.forward();
         }
 
-        public void navigateToTarget() {
-            frontDistance = (int) getUltrasonicDistance(frontSensor);
-            if (frontDistance >= 20000000) {
-                frontDistance = oldFrontDistance;
-            }
-            oldFrontDistance = frontDistance;
+        private void rotateRight() {
+            leftMotor.setSpeed(100);
+            rightMotor.setSpeed(100);
+            leftMotor.forward();
+            rightMotor.backward();
+        }
 
-            int error = frontDistance - frontSafeDistance;
-            int speed = Math.min(error * 10, 250);
-            int leftDistance = (int) getUltrasonicDistance(leftSensor);
-            int rightDistance = (int) getUltrasonicDistance(rightSensor);
-
-            if (frontDistance <= frontSafeDistance + 5 && frontDistance >= frontSafeDistance - 5) {
-                handleObstacles(leftDistance, rightDistance);
-            } else {
-                alignToTarget(targetPoint);
-                moveForward(speed);
-            }
-
-            leftDistance = (int) getUltrasonicDistance(leftSensor);
-            rightDistance = (int) getUltrasonicDistance(rightSensor);
-            maintainSideSafetyDistance(leftDistance, rightDistance);
-
-            Delay.msDelay(200);
+        private void moveForward(int speed) {
+            leftMotor.setSpeed(speed);
+            rightMotor.setSpeed(speed);
+            leftMotor.forward();
+            rightMotor.forward();
         }
 
         private void handleObstacles(int leftDistance, int rightDistance) {
             int frontDistance = (int) getUltrasonicDistance(frontSensor);
 
             while (frontDistance < frontSafeDistance + 20) {
+                frontDistance = (int) getUltrasonicDistance(frontSensor);
                 if (turnLeftNext && leftDistance > sideSafeDistance) {
                     rotateLeft();
                     Delay.msDelay(100);
@@ -185,11 +125,6 @@ public class AgentRobotIntegration extends Agent {
                     Delay.msDelay(9000); // Pause briefly before rechecking
                     System.out.println("Both sides blocked, pausing to reassess.");
                 }
-
-                // Update distances for continuous checking
-                frontDistance = (int) getUltrasonicDistance(frontSensor);
-                leftDistance = (int) getUltrasonicDistance(leftSensor);
-                rightDistance = (int) getUltrasonicDistance(rightSensor);
             }
             Delay.msDelay(50);
             moveForward(200);
@@ -254,33 +189,103 @@ public class AgentRobotIntegration extends Agent {
             }
         }
 
-        // ROBOT MOVEMENT
+
+        @Override
+        public void action() {
+            System.out.println("navigateToTarget\t" + targetPoint);
+            Point2D robotLocation = getRobotLocation();
+            double distanceToTarget = robotLocation.dist(targetPoint);
+            if (distanceToTarget <= 250) { // 250 corresponds to the noise of UWB
+                stopMotors();
+                notifyCentralMonitor("Robot reached the target point");
+                Delay.msDelay(3000); // Pause before resuming
+                removeBehaviour(NavigateToTarget);
+            }
+            frontDistance = (int) getUltrasonicDistance(frontSensor);
+            if (frontDistance >= 20000000) {
+                frontDistance = oldFrontDistance;
+            }
+            oldFrontDistance = frontDistance;
+
+            int error = frontDistance - frontSafeDistance;
+            int speed = Math.min(error * 10, 250);
+            int leftDistance = (int) getUltrasonicDistance(leftSensor);
+            int rightDistance = (int) getUltrasonicDistance(rightSensor);
+
+            if (frontDistance <= frontSafeDistance + 5 && frontDistance >= frontSafeDistance - 5) {
+                handleObstacles(leftDistance, rightDistance);
+            } else {
+                alignToTarget(targetPoint);
+                moveForward(speed);
+            }
+
+            leftDistance = (int) getUltrasonicDistance(leftSensor);
+            rightDistance = (int) getUltrasonicDistance(rightSensor);
+            maintainSideSafetyDistance(leftDistance, rightDistance);
+
+            Delay.msDelay(200);
+        }
+    };
+
+    CyclicBehaviour MessageReceiverBehaviour = new CyclicBehaviour() {
+
+
+        @Override
+        public void action() {
+            stopMotors();
+            MessageTemplate pathTemplate = MessageTemplate.and(
+                    MessageTemplate.MatchOntology("source_target_line_string"),
+                    MessageTemplate.MatchConversationId("line_string")
+            );
+            System.out.println("Receiving message");
+            ACLMessage pathMsg = myAgent.receive(pathTemplate);
+            if (pathMsg != null && pathMsg.getPerformative() == ACLMessage.INFORM) {
+                System.out.println("Received Path Message from " + pathMsg.getSender().getLocalName());
+                String pathString = pathMsg.getContent();
+                System.out.println("Path Content: " + pathString);
+
+                try {
+                    // Parse the received path
+                    WKTReader reader = new WKTReader();
+                    LineString pathLineString = (LineString) reader.read(pathString);
+                    handlePath(pathLineString);
+                } catch (ParseException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            MessageTemplate stopTemplate = MessageTemplate.and(
+                    MessageTemplate.MatchOntology("collision_line_string"),
+                    MessageTemplate.MatchConversationId("line_string"));
+            ACLMessage stopMsg = myAgent.receive(stopTemplate);
+
+            if (stopMsg != null && stopMsg.getPerformative() == ACLMessage.INFORM) {
+                System.out.println("Received Stop Message from " + stopMsg.getSender().getLocalName());
+                String contents = stopMsg.getContent();
+                System.out.println("Stop Content: " + contents);
+                removeBehaviour(NavigateToTarget);
+                stopMotors(); // replace with your own stop functionality
+            }
+
+            block(20);
+        }
+
         private void stopMotors() {
             leftMotor.stop(true);
             rightMotor.stop(true);
         }
+        private void handlePath(LineString pathLineString) {
+            System.out.println("Handling Path: " + pathLineString);
+            Point2D startPoint = new Point2D((int) pathLineString.getStartPoint().getX(),
+                    (int) pathLineString.getStartPoint().getY());
+            Point2D endPoint = new Point2D((int) pathLineString.getEndPoint().getX(),
+                    (int) pathLineString.getEndPoint().getY());
+            System.out.println("Moving from " + startPoint + " to " + endPoint);
 
-        private void rotateLeft() {
-            leftMotor.setSpeed(100);
-            rightMotor.setSpeed(100);
-            leftMotor.backward();
-            rightMotor.forward();
-        }
-
-        private void rotateRight() {
-            leftMotor.setSpeed(100);
-            rightMotor.setSpeed(100);
-            leftMotor.forward();
-            rightMotor.backward();
-        }
-
-        private void moveForward(int speed) {
-            leftMotor.setSpeed(speed);
-            rightMotor.setSpeed(speed);
-            leftMotor.forward();
-            rightMotor.forward();
+            // Start moving to the target
+            removeBehaviour(NavigateToTarget);
+            targetPoint = endPoint;
+            addBehaviour(NavigateToTarget);
         }
     };
 }
-
-

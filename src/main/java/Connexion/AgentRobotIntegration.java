@@ -141,7 +141,7 @@ public class AgentRobotIntegration extends Agent {
             ));
             float angleDifference = normalizeAngle(targetAngle - currentAngle);
 
-            while (Math.abs(angleDifference) > 20) {
+            while (Math.abs(angleDifference) > 15) {
                 currentAngle = tag.getAngle();
                 targetAngle = (float) Math.toDegrees(Math.atan2(
                         targetPoint.y - robotLocation.y,
@@ -192,14 +192,15 @@ public class AgentRobotIntegration extends Agent {
 
         @Override
         public void action() {
-            System.out.println("navigateToTarget\t" + targetPoint);
             Point2D robotLocation = getRobotLocation();
             double distanceToTarget = robotLocation.dist(targetPoint);
+            System.out.println("navigateToTarget:\t" + targetPoint + "\nDistance:\t" +distanceToTarget);
             if (distanceToTarget <= 250) { // 250 corresponds to the noise of UWB
                 stopMotors();
-                notifyCentralMonitor("Robot reached the target point");
+                System.out.println("Arrived");
                 Delay.msDelay(3000); // Pause before resuming
                 removeBehaviour(NavigateToTarget);
+                return;
             }
             frontDistance = (int) getUltrasonicDistance(frontSensor);
             if (frontDistance >= 20000000) {
@@ -228,16 +229,14 @@ public class AgentRobotIntegration extends Agent {
     };
 
     CyclicBehaviour MessageReceiverBehaviour = new CyclicBehaviour() {
-
-
         @Override
         public void action() {
-            stopMotors();
+            //stopMotors();
             MessageTemplate pathTemplate = MessageTemplate.and(
                     MessageTemplate.MatchOntology("source_target_line_string"),
                     MessageTemplate.MatchConversationId("line_string")
             );
-            System.out.println("Receiving message");
+
             ACLMessage pathMsg = myAgent.receive(pathTemplate);
             if (pathMsg != null && pathMsg.getPerformative() == ACLMessage.INFORM) {
                 System.out.println("Received Path Message from " + pathMsg.getSender().getLocalName());

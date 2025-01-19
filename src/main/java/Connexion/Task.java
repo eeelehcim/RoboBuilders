@@ -28,6 +28,7 @@ public class Task {
     public Point2D getDropoffPoint() {
         return dropoff_point;
     }
+
     public void setDropoffPoint(Point2D dropoff_point) {
         this.dropoff_point = dropoff_point;
     }
@@ -37,7 +38,6 @@ public class Task {
     }
 
     // Convert a Task to a string
-
     @Override
     public String toString() {
         return
@@ -46,6 +46,4 @@ public class Task {
                 ", dropoff_point=" + dropoff_point +
                 ", pickup_point=" + pickup_point;
     }
-
-    //
 }

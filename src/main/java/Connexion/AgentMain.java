@@ -35,8 +35,8 @@ public class AgentMain extends Agent {
         charging_points[1] = new Point2D(13074, 15079);
         triaging_station = new Point2D(13007, 14219);
 
-        System.out.println("local name Main " + getAID().getLocalName());
-        System.out.println("GloBal name Main " + getAID().getName());
+        System.out.println("Local name Main " + getAID().getLocalName());
+        System.out.println("Global name Main " + getAID().getName());
         addBehaviour(receiveMessages);
     }
 
@@ -51,8 +51,7 @@ public class AgentMain extends Agent {
                         robotLocation = new Point2D(Integer.parseInt(content[1]), Integer.parseInt(content[2]));
                     } else if (content[0].equals("request-tasks")) {
                         addBehaviour(sendTasksBehaviour);
-                    }
-                    else if (content[0].equals("charging-points")) {
+                    } else if (content[0].equals("charging-points")) {
                         addBehaviour(sendChargingPoints);
                     }
                     System.out.println("Agent Main Received: " + Message.getContent());
@@ -73,7 +72,6 @@ public class AgentMain extends Agent {
         return new Task(pickupTime, dropoffTime, dropoff_points[rand.nextInt(2)], pickup_points[rand.nextInt(2)]);
     }
 
-
     public static String sortedTasksToString(Task[] tasks) {
         StringBuilder result = new StringBuilder();
         for (Task task : tasks) {
@@ -82,14 +80,13 @@ public class AgentMain extends Agent {
         return result.toString();
     }
 
-
     OneShotBehaviour sendTasksBehaviour = new OneShotBehaviour() {
         @Override
         public void action() {
             try {
                 // Generate a list of tasks
                 Task[] tasks = new Task[2];
-                for (int i = 0; i < 2; i++) { // Generate 10 tasks
+                for (int i = 0; i < 2; i++) {       // Generate 10 tasks
                     tasks[i] = generateTask();
                 }
 
@@ -136,7 +133,6 @@ public class AgentMain extends Agent {
                 return 0;
             }
         });
-
         return tasks;
     }
 
@@ -147,7 +143,7 @@ public class AgentMain extends Agent {
                 ACLMessage message = new ACLMessage(INFORM);
                 message.addReceiver(new AID("AgentRobot", AID.ISLOCALNAME)); // Target AgentRobot
                 Point2D chargingPointNearest = nearestChargingPoint(robotLocation);
-                System.out.println("Sending: "+ chargingPointNearest.toString());
+                System.out.println("Sending: " + chargingPointNearest.toString());
                 message.setContent(chargingPointNearest.toString());
                 send(message);
             } catch (Exception e) {
@@ -159,10 +155,6 @@ public class AgentMain extends Agent {
     public Point2D nearestChargingPoint(Point2D robotLocation) {
         if (robotLocation.dist(charging_points[0]) > robotLocation.dist(charging_points[1])) {
             return charging_points[1];
-        }
-        else return charging_points[0];
+        } else return charging_points[0];
     }
-
 }
-
-

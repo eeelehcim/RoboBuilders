@@ -8,7 +8,6 @@ import jade.wrapper.AgentController;
 
 public class containerRobot {
     public static void main(String[] args) {
-
         /*String[] bootOptions = new String[7];
         bootOptions[0] = "-gui";
         bootOptions[1] = "-local-port";
@@ -34,7 +33,7 @@ public class containerRobot {
 
            // Properties properties = new ExtendedProperties();
            // properties.setProperty(Profile.GUI, "true");
-      //      properties.
+            //      properties.
             //Profile profile = new ProfileImpl(properties);
             AgentController agentRobot=agentContainer.createNewAgent("AgentRobot",
                     "Connexion.AgentRobot",new Object[]{});
@@ -47,6 +46,5 @@ public class containerRobot {
     }
 
     public static void start() {
-
     }
 }

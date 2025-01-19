@@ -23,7 +23,6 @@ import java.util.List;
 import static jade.lang.acl.ACLMessage.INFORM;
 
 public class AgentRobot extends Agent {
-
     static EV3MediumRegulatedMotor leftMotor = new EV3MediumRegulatedMotor(MotorPort.B);
     static EV3MediumRegulatedMotor rightMotor = new EV3MediumRegulatedMotor(MotorPort.A);
     static EV3UltrasonicSensor frontSensor = new EV3UltrasonicSensor(SensorPort.S1);
@@ -41,10 +40,10 @@ public class AgentRobot extends Agent {
     int RESTART_TASK_LIST_MS = 300000;
 
     // Battery constants VALUES FOR TESTING
-    int TOTAL_BATTERY_LEVEL = 60000;                       // Battery cannot exceed 240000MS = 4 minutes
-    private double simulatedBatteryLevel_ms = TOTAL_BATTERY_LEVEL;       // Initial battery level
-    int BATTERY_TO_GO_CHARGING_MS = 30000;                  // 1 minute in ms
-    private long notifyTimeBeforeFinish = 3000;   // 10 minutes in ms
+    int TOTAL_BATTERY_LEVEL = 60000;                                    // Battery cannot exceed 240000MS = 4 minutes
+    private double simulatedBatteryLevel_ms = TOTAL_BATTERY_LEVEL;      // Initial battery level
+    int BATTERY_TO_GO_CHARGING_MS = 30000;                              // 1 minute in ms
+    private long notifyTimeBeforeFinish = 3000;                         // 10 minutes in ms
 
     /* REAL VALUES
     int TOTAL_BATTERY_LEVEL = 240000;                       // Battery cannot exceed 240000MS = 4 minutes
@@ -101,7 +100,6 @@ public class AgentRobot extends Agent {
         send(message);
     }
 
-
     OneShotBehaviour initMessage = new OneShotBehaviour() {
         @Override
         public void action() {
@@ -112,7 +110,6 @@ public class AgentRobot extends Agent {
     OneShotBehaviour ReceiveTasksBehaviour = new OneShotBehaviour() {
         @Override
         public void action() {
-
             notifyCentralMonitor("request-tasks");
 
             ACLMessage message = blockingReceive(2000); // Wait up to 2 seconds for a response
@@ -159,12 +156,12 @@ public class AgentRobot extends Agent {
                 Point2D pickupPoint = parsePoint(parts[3].split("=")[1].trim());
 
                 return new Task(pickupTime, dropoffTime, dropoffPoint, pickupPoint);
-
             } catch (Exception e) {
                 System.out.println("Failed to parse task: " + e.getMessage());
                 return null;
             }
         }
+
         public Point2D parsePoint(String pointString) {
             // Example format: "{x: 13165; y:14609}"
             pointString = pointString.replace("{x:", "").replace("}", "").replace("y:", "").trim();
@@ -186,8 +183,6 @@ public class AgentRobot extends Agent {
             try {
                 Point2D loc = tag.getLocation();
                 notifyCentralMonitor("location " + loc.x + " " + loc.y + " " + tag.getAngle());
-
-
             } catch (Exception e) {
                 System.out.println(e);
             }
@@ -227,7 +222,7 @@ public class AgentRobot extends Agent {
                 notifyCentralMonitor("Tasks list empty! Going to charge.");
                 notifyCentralMonitor("charging-points");
                 ACLMessage message = blockingReceive(2000);
-                if(message!=null){
+                if (message!=null) {
                     targetPoint = parsePoint(message.getContent().split("\n")[0]);
                 }
                 charging = true;
@@ -248,7 +243,7 @@ public class AgentRobot extends Agent {
                         charged = chargeBattery(needsCharging);
                     }
                     charging = false;
-                    if(currentTask!=null){
+                    if (currentTask!=null) {
                         targetPoint = isPickup ? currentTask.getPickupPoint() : currentTask.getDropoffPoint();
                     }
                     return;
@@ -269,7 +264,7 @@ public class AgentRobot extends Agent {
                         isPickup = false;
                     } else {
                         if (!tasks.isEmpty()) {
-                            if(tasksTime+RESTART_TASK_LIST_MS>=System.currentTimeMillis()){ // check if it hasn't been 5 min to update the task
+                            if (tasksTime+RESTART_TASK_LIST_MS>=System.currentTimeMillis()) { // check if it hasn't been 5 min to update the task
                                 do {
                                     currentTask = tasks.remove(0);
                                     if (currentTask.getDropoffTime().getTime() > System.currentTimeMillis() +4*60*1000){
@@ -277,7 +272,7 @@ public class AgentRobot extends Agent {
                                     }
                                 } while(!tasks.isEmpty() && currentTask.getDropoffTime().getTime() > System.currentTimeMillis() +4*60*1000);
                                 isPickup = true;
-                            }else{  //it's time to update the task list
+                            } else {  //it's time to update the task list
                                 isPickup = true;
                                 notifyCentralMonitor(tasks.toString() + "not completed.");
                                 addBehaviour(ReceiveTasksBehaviour);
@@ -330,9 +325,9 @@ public class AgentRobot extends Agent {
                 handleObstacles(leftDistance, rightDistance);
                 avoidingObstacle = true;
             } else {
-                if(!avoidingObstacle)
+                if (!avoidingObstacle) {
                     alignToTarget(targetPoint);
-                else{
+                } else{
                     System.out.println("Avoiding obstacle");
                     if((leftDistance>=sideSafeDistance*3&&obstacleLeft) || (rightDistance>=sideSafeDistance*3&&!obstacleLeft)){
                         moveForward(speed);
@@ -418,11 +413,8 @@ public class AgentRobot extends Agent {
             return true;
         }
 
-
-
-
         // USE CASE: TRIAGING ROTTING CRATES
-        public void checkRottingCrate() {                               // Check gas level and handle triaging
+        public void checkRottingCrate() {       // Check gas level and handle triaging
             double ethyleneLevel = simulateEthyleneLevel();
             notifyCentralMonitor("Ethylene level of the crate: " + ethyleneLevel);
             if (ethyleneLevel > ETHYLENE_THRESHOLD) {
@@ -433,8 +425,7 @@ public class AgentRobot extends Agent {
 
                 // Change the dropoff point to the triaging station
                 currentTask.setDropoffPoint(getTriagingStationLocation(getRobotLocation()));
-            }
-            else {
+            } else {
                 System.out.println("Crate not marked as potentially rotting");
             }
         }
@@ -446,7 +437,6 @@ public class AgentRobot extends Agent {
         public Point2D getTriagingStationLocation(Point2D robotLocation) {
             return new Point2D(13007, 14219); // triaging station location
         }
-
 
         //USE CASE: COLLISION AVOIDANCE
         private void handleObstacles(int leftDistance, int rightDistance) {
@@ -492,7 +482,6 @@ public class AgentRobot extends Agent {
             }
         }
 
-
         // ROBOT MOVEMENT
         private void stopMotors() {
             leftMotor.stop(true);
@@ -519,6 +508,7 @@ public class AgentRobot extends Agent {
             leftMotor.forward();
             rightMotor.forward();
         }
+
         public Point2D parsePoint(String pointString) {
             // Example format: "{x: 13165; y:14609}"
             pointString = pointString.replace("{x:", "").replace("}", "").replace("y:", "").trim();
@@ -533,5 +523,4 @@ public class AgentRobot extends Agent {
             return new Point2D(x, y);
         }
     };
-
 }

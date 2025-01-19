@@ -102,7 +102,6 @@ public class TagIdMqtt {
             System.out.println("Connected...");
             client.subscribe(topic);
 
-
             return client;
         } catch (MqttException me) {
             print_exception(me);
@@ -119,7 +118,6 @@ public class TagIdMqtt {
     }
 
     private class Callback implements MqttCallback {
-
         @Override
         public void connectionLost(Throwable cause) {
             System.out.println(cause);
@@ -168,7 +166,5 @@ public class TagIdMqtt {
         public void deliveryComplete(IMqttDeliveryToken token) {
             System.out.println("Delivery complete");
         }
-
     }
-
 }

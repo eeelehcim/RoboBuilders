@@ -10,34 +10,25 @@ import jade.wrapper.AgentController;
 // 1586 12933
 public class containerMain {
     public static void main(String[] args) {
-
-
         try {
             Runtime runtime = Runtime.instance();
             Properties properties = new ExtendedProperties();
             properties.setProperty(Profile.GUI, "true");
 
-
             Profile profile = new ProfileImpl(properties);
             AgentContainer agentContainer=runtime.createMainContainer(profile);
 
             containerMain.start();
-           // Connexion.container1.getCredentials();
+            // Connexion.container1.getCredentials();
 
             AgentController agentMain=agentContainer.createNewAgent("AgentMain",
                     "Connexion.AgentMain",new Object[]{});
             agentMain.start();
-
-
-
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
-
     public static void start() {
-
     }
-
 }

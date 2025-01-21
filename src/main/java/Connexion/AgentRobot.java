@@ -40,10 +40,10 @@ public class AgentRobot extends Agent {
     int RESTART_TASK_LIST_MS = 300000;
 
     // Battery constants VALUES FOR TESTING
-    int TOTAL_BATTERY_LEVEL = 60000;                                    // Battery cannot exceed 240000MS = 4 minutes
+    int TOTAL_BATTERY_LEVEL = 240000;                                    // Battery cannot exceed 240000MS = 4 minutes
     private double simulatedBatteryLevel_ms = TOTAL_BATTERY_LEVEL;      // Initial battery level
-    int BATTERY_TO_GO_CHARGING_MS = 30000;                              // 1 minute in ms
-    private long notifyTimeBeforeFinish = 3000;                         // 10 minutes in ms
+    int BATTERY_TO_GO_CHARGING_MS = 60000;                              // 1 minute in ms
+    private long notifyTimeBeforeFinish = 10 * 60 * 1000;                         // 10 minutes in ms
 
     /* REAL VALUES
     int TOTAL_BATTERY_LEVEL = 240000;                       // Battery cannot exceed 240000MS = 4 minutes
@@ -54,7 +54,7 @@ public class AgentRobot extends Agent {
 
 
     //Triaging level constants
-    private int ETHYLENE_THRESHOLD = 0;                        // Threshold in ppm
+    private int ETHYLENE_THRESHOLD = 90;                        // Threshold in ppm
 
 
     @Override

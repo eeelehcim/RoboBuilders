@@ -85,8 +85,8 @@ public class AgentMain extends Agent {
         public void action() {
             try {
                 // Generate a list of tasks
-                Task[] tasks = new Task[2];
-                for (int i = 0; i < 2; i++) {       // Generate 10 tasks
+                Task[] tasks = new Task[10];
+                for (int i = 0; i < 10; i++) {       // Generate 10 tasks
                     tasks[i] = generateTask();
                 }
 

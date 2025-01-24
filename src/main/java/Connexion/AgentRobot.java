@@ -37,20 +37,13 @@ public class AgentRobot extends Agent {
     Task currentTask;
     long tasksTime;
     boolean isPickup = true; // True if we are heading towards the pickup point
-    int RESTART_TASK_LIST_MS = 300000;
+    int RESTART_TASK_LIST_MS = 300000;              // every 5 mins (300000ms) the tasks list is going to be updated
 
     // Battery constants VALUES FOR TESTING
     int TOTAL_BATTERY_LEVEL = 240000;                                    // Battery cannot exceed 240000MS = 4 minutes
-    private double simulatedBatteryLevel_ms = TOTAL_BATTERY_LEVEL;      // Initial battery level
-    int BATTERY_TO_GO_CHARGING_MS = 60000;                              // 1 minute in ms
-    private long notifyTimeBeforeFinish = 10 * 60 * 1000;                         // 10 minutes in ms
-
-    /* REAL VALUES
-    int TOTAL_BATTERY_LEVEL = 240000;                       // Battery cannot exceed 240000MS = 4 minutes
-    private double simulatedBatteryLevel_ms = 240000;       // Initial battery level
-    int BATTERY_TO_GO_CHARGING_MS = 60000;                  // 1 minute in ms
-    int TOTAL_TIME_CHARGING = 20*60*100;                    // 20 min
-    private long notifyTimeBeforeFinish = 10 * 60 * 1000;   // 10 minutes in ms*/
+    private double simulatedBatteryLevel_ms = TOTAL_BATTERY_LEVEL;       // Initial battery level
+    int BATTERY_TO_GO_CHARGING_MS = 60000;                               // 1 minute in ms
+    private long notifyTimeBeforeFinish = 10 * 60 * 1000;                // 10 minutes in ms
 
 
     //Triaging level constants
@@ -203,7 +196,7 @@ public class AgentRobot extends Agent {
 
         @Override
         protected void onTick() {
-            drainBattery(41.67); // Drain 0.4% battery per tick --> battery constrain is 4 minutes
+            drainBattery(41.67); // Drain 0.4% battery per tick --> battery constraint is 4 minutes
 
             // Check battery level and handle charging
             if (simulatedBatteryLevel_ms < BATTERY_TO_GO_CHARGING_MS && !charging) {   // When the robot has 1 minute of battery left, we have to go charge it. From here comes the 60
@@ -295,7 +288,7 @@ public class AgentRobot extends Agent {
             }
         }
 
-        // USE CASE: TRANSFERING CRATES
+        // USE CASE: TRANSFERRING CRATES
         public double getUltrasonicDistance(EV3UltrasonicSensor sensor) {
             SampleProvider provider = sensor.getDistanceMode();
             float[] samples = new float[provider.sampleSize()];

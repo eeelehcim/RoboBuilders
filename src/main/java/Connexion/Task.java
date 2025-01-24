@@ -37,7 +37,6 @@ public class Task {
         return pickup_point;
     }
 
-    // Convert a Task to a string
     @Override
     public String toString() {
         return

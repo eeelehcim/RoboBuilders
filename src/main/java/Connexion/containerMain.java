@@ -7,7 +7,7 @@ import jade.util.ExtendedProperties;
 import jade.util.leap.Properties;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.AgentController;
-// 1586 12933
+
 public class containerMain {
     public static void main(String[] args) {
         try {
@@ -19,7 +19,6 @@ public class containerMain {
             AgentContainer agentContainer=runtime.createMainContainer(profile);
 
             containerMain.start();
-            // Connexion.container1.getCredentials();
 
             AgentController agentMain=agentContainer.createNewAgent("AgentMain",
                     "Connexion.AgentMain",new Object[]{});
